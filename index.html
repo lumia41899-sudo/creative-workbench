@@ -1,0 +1,380 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>åä½å·¥ä½å° Â· Creative Workspace</title>
+<!-- äºç«¯ SDKï¼åå¯é¥ LLM + äºæ°æ®åº + ç»å½ï¼ä¸ ExcelJS èµ° CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@tencent-ai/workbuddy-cloud-sdk@dev/lib/index.global.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<!-- å·¥ç¨å±ï¼é¶ç¡¬ç¼ç ï¼ç¥è¯å¨é¨è¿è¡æ¶ä»ç¥è¯å±è¯»å -->
+<script src="./lib/cloud.js"></script>
+<script src="./lib/knowledge.js"></script>
+<script src="./lib/llm.js"></script>
+<script src="./lib/exporter.js"></script>
+<script src="./lib/pipeline.js"></script>
+<script src="./lib/step2.js"></script>
+<style>
+  :root{--paper:#f7f8fa;--card:#fff;--ink:#1f2329;--hand:#5b6470;--line:#e3e6ea;--brand:#373c43;--ok:#1a7f4b;--err:#c0392b}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;line-height:1.7;padding:20px}
+  .wrap{max-width:880px;margin:0 auto}
+  h1{font-size:21px;margin:0 0 4px}
+  .sub{color:var(--hand);font-size:13px;margin-bottom:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:14px}
+  .card h2{font-size:15px;margin:0 0 10px}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+  .tabs button{background:#eef0f3;color:var(--ink);border:0;border-radius:8px;padding:7px 13px;font-size:13px;cursor:pointer}
+  .tabs button.on{background:var(--brand);color:#fff}
+  label{display:block;font-size:12px;color:var(--hand);margin:10px 0 4px}
+  input{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-size:14px;background:#fff}
+  .btn{background:var(--brand);color:#fff;border:0;border-radius:8px;padding:10px 16px;font-size:14px;cursor:pointer;margin-top:14px}
+  .btn:disabled{opacity:.5;cursor:default}
+  .btn.ghost{background:#eef0f3;color:var(--ink);margin-left:8px}
+  .msg{font-size:13px;margin-top:10px;white-space:pre-wrap}
+  .msg.err{color:var(--err)} .msg.ok{color:var(--ok)}
+  .hide{display:none}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  td{padding:6px 4px;border-bottom:1px solid var(--line);vertical-align:top}
+  td:first-child{color:var(--hand);width:120px;white-space:nowrap}
+  code{background:#f0f2f5;padding:1px 5px;border-radius:4px;font-size:12px}
+  .pill{display:inline-block;font-size:12px;border:1px solid var(--line);border-radius:999px;padding:1px 9px;color:var(--hand);margin-left:6px}
+  ol{margin:6px 0 0 20px;padding:0;font-size:13px}
+  .bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  small{color:var(--hand)}
+  .steps{list-style:none;display:flex;gap:6px;padding:0;margin:6px 0 12px;flex-wrap:wrap}
+  .steps li{font-size:12px;padding:5px 11px;border-radius:999px;background:#eef0f3;color:var(--hand)}
+  .steps li.on{background:var(--brand);color:#fff}
+  .steps li.done{background:#dfeede;color:var(--ok)}
+  .cards{display:grid;gap:10px;margin-top:10px}
+  @media(min-width:640px){.cards{grid-template-columns:1fr 1fr}}
+  .card2{border:1px solid var(--line);border-radius:9px;padding:12px 13px;background:#fff}
+  .card2.sel{border-color:var(--brand);box-shadow:0 0 0 2px rgba(55,60,67,.12)}
+  .card2.row{display:flex;align-items:center;gap:10px}
+  .card2 .ct{font-size:14px;font-weight:600;margin-bottom:6px}
+  .card2 .cm{font-size:12.5px;color:var(--ink);margin:3px 0}
+  .card2 .pick{margin-top:8px;padding:7px 12px;font-size:13px}
+  .grid2{display:grid;gap:14px}@media(min-width:560px){.grid2{grid-template-columns:1fr 1fr}}
+  .grid2 label{margin-top:8px}
+  textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-size:14px;font-family:inherit;resize:vertical}
+  .chosen{background:#f0f2f5;border-radius:8px;padding:8px 11px;font-size:13px;margin:8px 0}
+  .stream{background:#0f1115;color:#d6f5d6;font-size:12px;padding:10px;max-height:200px;overflow:auto;border-radius:8px;margin-top:10px;white-space:pre-wrap}
+  table.shot{margin-top:6px;font-size:12px;width:100%;border-collapse:collapse}
+  table.shot th{background:#f0f2f5;color:var(--hand);text-align:left;padding:3px 5px}
+  table.shot td{padding:3px 5px;border-top:1px solid var(--line);vertical-align:top}
+  .sel{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-size:14px;background:#fff}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ============ æªç»å½ï¼ç»å½é¨ ============ -->
+  <div id="view-login">
+    <h1>åä½å·¥ä½å°<span class="pill">Creative Workspace</span></h1>
+    <div class="sub">éè¦ç»å½æè½ä½¿ç¨ Â· ç»å½ååªä¼çå°ä½ èªå·±çæ°æ®</div>
+
+    <div class="card">
+      <div class="tabs">
+        <button id="tab-pwd" class="on">å¯ç ç»å½</button>
+        <button id="tab-otp">éªè¯ç ç»å½</button>
+        <button id="tab-signup">æ³¨å</button>
+        <button id="tab-forgot">å¿è®°å¯ç </button>
+      </div>
+
+      <!-- å¯ç ç»å½ -->
+      <div id="pane-pwd">
+        <label>é®ç®±</label><input id="pwd-email" type="email" autocomplete="email" placeholder="you@example.com" />
+        <label>å¯ç </label><input id="pwd-pass" type="password" autocomplete="current-password" placeholder="â¢â¢â¢â¢â¢â¢" />
+        <button class="btn" id="btn-pwd">ç»å½</button>
+      </div>
+
+      <!-- éªè¯ç ç»å½ -->
+      <div id="pane-otp" class="hide">
+        <label>é®ç®±</label><input id="otp-email" type="email" placeholder="you@example.com" />
+        <button class="btn" id="btn-otp-send">åééªè¯ç </button>
+        <div id="otp-step2" class="hide">
+          <label>é®ç®±æ¶å°çéªè¯ç </label><input id="otp-code" inputmode="numeric" placeholder="6 ä½æ°å­" />
+          <button class="btn" id="btn-otp-verify">ç»å½</button>
+        </div>
+      </div>
+
+      <!-- æ³¨å -->
+      <div id="pane-signup" class="hide">
+        <label>é®ç®±</label><input id="up-email" type="email" placeholder="you@example.com" />
+        <button class="btn" id="btn-up-send">åééªè¯ç </button>
+        <div id="up-step2" class="hide">
+          <label>é®ç®±æ¶å°çéªè¯ç </label><input id="up-code" inputmode="numeric" placeholder="6 ä½æ°å­" />
+          <label>è®¾ç½®å¯ç </label><input id="up-pass" type="password" autocomplete="new-password" placeholder="è³å° 8 ä½" />
+          <button class="btn" id="btn-up-submit">å®ææ³¨å</button>
+        </div>
+      </div>
+
+      <!-- å¿è®°å¯ç  -->
+      <div id="pane-forgot" class="hide">
+        <label>æ³¨åé®ç®±</label><input id="fg-email" type="email" placeholder="you@example.com" />
+        <button class="btn" id="btn-fg-send">åééç½®éªè¯ç </button>
+        <div id="fg-step2" class="hide">
+          <label>éªè¯ç </label><input id="fg-code" inputmode="numeric" placeholder="6 ä½æ°å­" />
+          <label>æ°å¯ç </label><input id="fg-pass" type="password" autocomplete="new-password" placeholder="è³å° 8 ä½" />
+          <button class="btn" id="btn-fg-submit">éç½®å¹¶ç»å½</button>
+        </div>
+      </div>
+
+      <div id="login-msg" class="msg"></div>
+      <div style="margin-top:14px"><small>æç¤ºï¼ç»å½åè½åªå¨<strong>åå¸åçæ­£å¼åå</strong>çæãè¥å¨æ¬å°é¢è§æå¼ï¼ç»å½ä¼å¤±è´¥ï¼è¿æ¯æ­£å¸¸çã</small></div>
+    </div>
+  </div>
+
+  <!-- ============ å·²ç»å½ï¼å·¥ä½å° ============ -->
+  <div id="view-app" class="hide">
+    <h1>åä½å·¥ä½å° <span class="pill">äºç«¯ç</span></h1>
+    <div class="sub">åå±æ¶æï¼ç¥è¯å±(Ima) â åæ­¥æ¡¥ â äºæ°æ®åº â åºç¨å±(é¶ç¡¬ç¼ç ) â äºç«¯ LLM</div>
+
+    <div class="card">
+      <div class="bar">
+        <div><small>å·²ç»å½ï¼<span id="who">â</span></small></div>
+        <div><button class="btn ghost" id="btn-out" style="margin-top:0">éåºç»å½</button></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>äºç¯å¢ & ç¥è¯å±ç¶æ</h2>
+      <table>
+        <tr><td>åºç¨</td><td>åä½å·¥ä½å° Â· <code id="appid">wbapp_EeBo8MC7tV0XX1QuWz8NP4</code></td></tr>
+        <tr><td>äºç«¯åå</td><td><code id="ep">â</code></td></tr>
+        <tr><td>æ¨¡å</td><td>äºç«¯åå¯é¥ LLMï¼æ é API Keyï¼ä¸å æ¬æºç®åï¼</td></tr>
+        <tr><td>ç¥è¯å±æ¥æº</td><td id="ksrc">æ£æµä¸­â¦</td></tr>
+        <tr><td>å·²è½½äº§å / Skill</td><td id="kcnt">â</td></tr>
+      </table>
+      <button class="btn" id="btn-check">è¿è¡äºç¯å¢èªæ£</button>
+      <div id="check-msg" class="msg"></div>
+      <div class="cm" style="color:var(--hand);margin-top:8px;font-size:12px">
+        ç¥è¯å±ç±ãåæ­¥æ¡¥ãä» Ima ç¥è¯åºåå¥äºæ°æ®åºï¼è¥äºåºä¸ºç©ºï¼åºç¨èªå¨åéå°æåç knowledge/*.jsonï¼ä»å¯ç¦»çº¿è¿è¡ï¼ãæ¢è®¾å¤ç»å½å³å¯è¯»å°åä¸ä»½äºåºæ°æ®ã
+      </div>
+    </div>
+
+    <div class="card" id="step2-root"><!-- ç¬¬ 2 æ­¥ Â· åä½æµç¨ï¼åæ­¥ + ä¸å¡ç¹ï¼ç± lib/step2.js æ¸²æ --></div>
+
+    <div class="card">
+      <h2>æ¶æè·¯çº¿å¾è¿åº¦</h2>
+      <ol>
+        <li>â <b>ç¥è¯å±</b>ï¼äº§åè®°å¿ / Skill / èµäº§ / æ¡ä¾ / æµç¨ æ½ç¦»ä¸º knowledge/*.jsonï¼å·¥ç¨å±æåååºï¼+ Ima äºä¸­å¿ï¼å¾ä½ å»º KB å¹¶å½åå®¹ï¼</li>
+        <li>â <b>åæ­¥æ¡¥</b>ï¼sync/ima-to-cloud.js æ Ima ç¥è¯åæ­¥åå¥äºæ°æ®åºï¼cw_products ç­è¡¨ï¼</li>
+        <li>â <b>åºç¨å±</b>ï¼éäº§åâéç±»åâè¯» Skill è§åâå¡«éæ±âè°äºç«¯ LLMâåºèæ¬âæºå¨èªæ£âå¯¼åº Excelï¼é¶ç¡¬ç¼ç ï¼</li>
+        <li>â <b>è·¨è®¾å¤</b>ï¼è¿è¡æ¶ä¼åè¯»äºæ°æ®åºï¼ç»å½è´¦å·å³å¯ç¨ï¼ä¸ä¾èµæå°çµèç D çæä»¶</li>
+      </ol>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  function $(id) { return document.getElementById(id); }
+  function say(el, text, kind) {
+    if (!el) return;
+    el.className = "msg" + (kind ? " " + kind : "");
+    el.textContent = text || "";
+  }
+  function short(e) {
+    if (!e) return "æªç¥éè¯¯";
+    return (e.error && e.error.code) ? e.error.code + (e.error.message ? "ï¼" + e.error.message : "")
+      : (e.message || String(e));
+  }
+
+  if (!window.WorkBuddyCloud || !window.WorkBuddyCloud.createWorkBuddyCloud) {
+    say($("login-msg"), "SDK æªå è½½ï¼å¯è½ç½ç»åéï¼æ æ³è®¿é® cdn.jsdelivr.netï¼", "err");
+    return;
+  }
+
+  // ç¨ lib/cloud.js ä¸­çç«¯ç¹ä¸å¯é¥åå»º cloud å®ä¾
+  var cloud = window.CWCloud ? window.CWCloud.create() : null;
+  if (!cloud) {
+    say($("login-msg"), "cloud å®ä¾åå»ºå¤±è´¥", "err");
+    return;
+  }
+
+  // å¯å¨ç¬¬ 2 æ­¥ åä½æµç¨ UIï¼åæ­¥ + ä¸ä¸ªç¡®è®¤å¡ç¹ï¼ç¥è¯å¨é¨è¿è¡æ¶è¯»åï¼
+  try { if (window.CWStep2) window.CWStep2.init(cloud); }
+  catch (e) { console.error("ç¬¬2æ­¥ UI åå§åå¤±è´¥ï¼", e); }
+
+  // ç¥è¯å±æ¥æº/æ°éæ¢æµ
+  async function probeKnowledge() {
+    try {
+      if (!window.CWKnowledge) return;
+      var prods = await window.CWKnowledge.loadProducts();
+      var skills = await window.CWKnowledge.loadSkills();
+      $("kcnt").textContent = (prods.length) + " ä¸ªäº§å Â· " + (skills.length) + " ä¸ª Skill";
+      // æ¥æºå¤æ­ï¼loadProducts åé¨äºä¼åï¼è¿éæ æ³åºåï¼ç»ä¸æç¤ºâå·²å°±ç»ªâ
+      $("ksrc").textContent = (prods.length || skills.length)
+        ? "å·²å°±ç»ªï¼äºåºä¼åï¼ç©ºååéæ¬å°æåï¼"
+        : "ææªåæ­¥ï¼è¯·åå¨ Ima å»ºãCreative WorkspaceãKB å¹¶è¿è¡åæ­¥æ¡¥";
+    } catch (e) {
+      $("ksrc").textContent = "è¯»åå¤±è´¥ï¼" + short(e);
+    }
+  }
+  probeKnowledge();
+
+  // ââ è§å¾åæ¢ ââ
+  function showLogin() { $("view-login").classList.remove("hide"); $("view-app").classList.add("hide"); }
+  function showApp(user) {
+    $("view-login").classList.add("hide");
+    $("view-app").classList.remove("hide");
+    $("ep").textContent = (window.CWCloud && window.CWCloud.ENDPOINT) || cloud.endpoint || "â";
+    $("who").textContent = (user && (user.email || user.id)) || "å·²ç»å½";
+    if (window.CWStep2) window.CWStep2.loadModels();
+    probeKnowledge();
+  }
+
+  // ââ Tab åæ¢ ââ
+  var tabs = { pwd: "tab-pwd", otp: "tab-otp", signup: "tab-signup", forgot: "tab-forgot" };
+  function activate(name) {
+    Object.keys(tabs).forEach(function (k) {
+      $(tabs[k]).className = (k === name) ? "on" : "";
+      $("pane-" + k).classList.toggle("hide", k !== name);
+    });
+    say($("login-msg"), "");
+  }
+  Object.keys(tabs).forEach(function (k) {
+    $(tabs[k]).addEventListener("click", function () { activate(k); });
+  });
+
+  // ââ ä¼è¯å®å« ââ
+  async function guard() {
+    try {
+      var res = await cloud.auth.getSession();
+      if (res && res.error) { showLogin(); return; }
+      var session = res && res.data;
+      if (!session) { showLogin(); return; }
+      showApp(session.user);
+    } catch (e) { showLogin(); }
+  }
+  cloud.auth.onAuthStateChange(function (event, session) {
+    if (event === "SIGNED_OUT" || !session) showLogin(); else showApp(session.user);
+  });
+
+  // ââ 1. å¯ç ç»å½ ââ
+  $("btn-pwd").addEventListener("click", async function () {
+    var email = $("pwd-email").value.trim(), pass = $("pwd-pass").value;
+    if (!email || !pass) return say($("login-msg"), "è¯·å¡«åé®ç®±åå¯ç ", "err");
+    $("btn-pwd").disabled = true; say($("login-msg"), "ç»å½ä¸­â¦");
+    try {
+      var r = await cloud.auth.signInWithPassword({ email: email, password: pass });
+      if (r.error) throw r.error;
+      await guard();
+    } catch (e) { say($("login-msg"), "ç»å½å¤±è´¥ï¼" + short(e), "err"); }
+    finally { $("btn-pwd").disabled = false; }
+  });
+
+  // ââ 2. éªè¯ç ç»å½ ââ
+  $("btn-otp-send").addEventListener("click", async function () {
+    var email = $("otp-email").value.trim();
+    if (!email) return say($("login-msg"), "è¯·å¡«åé®ç®±", "err");
+    say($("login-msg"), "åéä¸­â¦");
+    try {
+      var r = await cloud.auth.signInWithOtp({ email: email });
+      if (r.error) throw r.error;
+      window.__otpVerify = r.data.verify;
+      $("otp-step2").classList.remove("hide");
+      say($("login-msg"), "éªè¯ç å·²åéï¼è¯·æ¥æ¶é®ç®±", "ok");
+    } catch (e) { say($("login-msg"), "åéå¤±è´¥ï¼" + short(e), "err"); }
+  });
+  $("btn-otp-verify").addEventListener("click", async function () {
+    var code = $("otp-code").value.trim();
+    if (!code) return say($("login-msg"), "è¯·å¡«éªè¯ç ", "err");
+    say($("login-msg"), "æ ¡éªä¸­â¦");
+    try {
+      if (!window.__otpVerify) throw new Error("è¯·ååééªè¯ç ");
+      var r = await window.__otpVerify({ token: code });
+      if (r.error) throw r.error;
+      await guard();
+    } catch (e) { say($("login-msg"), "ç»å½å¤±è´¥ï¼" + short(e), "err"); }
+  });
+
+  // ââ 3. æ³¨å ââ
+  $("btn-up-send").addEventListener("click", async function () {
+    var email = $("up-email").value.trim();
+    if (!email) return say($("login-msg"), "è¯·å¡«åé®ç®±", "err");
+    say($("login-msg"), "åéä¸­â¦");
+    try {
+      var r = await cloud.auth.sendOtp({ email: email });
+      if (r.error) throw r.error;
+      window.__signupOtp = { email: email, verificationId: r.data.verificationId, isExistingUser: r.data.isExistingUser };
+      $("up-step2").classList.remove("hide");
+      say($("login-msg"), "éªè¯ç å·²åéï¼è¯·æ¥æ¶é®ç®±", "ok");
+    } catch (e) { say($("login-msg"), "åéå¤±è´¥ï¼" + short(e), "err"); }
+  });
+  $("btn-up-submit").addEventListener("click", async function () {
+    var code = $("up-code").value.trim(), pass = $("up-pass").value;
+    if (!code || !pass) return say($("login-msg"), "è¯·å¡«éªè¯ç å¹¶è®¾ç½®å¯ç ", "err");
+    if (pass.length < 8) return say($("login-msg"), "å¯ç è³å° 8 ä½", "err");
+    var s = window.__signupOtp;
+    if (!s) return say($("login-msg"), "è¯·ååééªè¯ç ", "err");
+    if (s.isExistingUser) {
+      activate("pwd");
+      return say($("login-msg"), "è¿ä¸ªé®ç®±å·²æè´¦å·ï¼è¯·ç´æ¥ç¨ãå¯ç ç»å½ã", "ok");
+    }
+    say($("login-msg"), "æ³¨åä¸­â¦");
+    try {
+      var r = await cloud.auth.verifyOtp({
+        verificationId: s.verificationId, token: code, email: s.email,
+        isExistingUser: s.isExistingUser, password: pass
+      });
+      if (r.error) throw r.error;
+      await guard();
+    } catch (e) { say($("login-msg"), "æ³¨åå¤±è´¥ï¼" + short(e), "err"); }
+  });
+
+  // ââ 4. å¿è®°å¯ç  ââ
+  $("btn-fg-send").addEventListener("click", async function () {
+    var email = $("fg-email").value.trim();
+    if (!email) return say($("login-msg"), "è¯·å¡«åé®ç®±", "err");
+    say($("login-msg"), "åéä¸­â¦");
+    try {
+      var r = await cloud.auth.resetPasswordForEmail(email);
+      if (r.error) throw r.error;
+      window.__resetUpdate = r.data.updateUser;
+      $("fg-step2").classList.remove("hide");
+      say($("login-msg"), "éç½®éªè¯ç å·²åéï¼è¯·æ¥æ¶é®ç®±", "ok");
+    } catch (e) { say($("login-msg"), "åéå¤±è´¥ï¼" + short(e), "err"); }
+  });
+  $("btn-fg-submit").addEventListener("click", async function () {
+    var code = $("fg-code").value.trim(), pass = $("fg-pass").value;
+    if (!code || !pass) return say($("login-msg"), "è¯·å¡«éªè¯ç åæ°å¯ç ", "err");
+    if (pass.length < 8) return say($("login-msg"), "å¯ç è³å° 8 ä½", "err");
+    say($("login-msg"), "æäº¤ä¸­â¦");
+    try {
+      if (!window.__resetUpdate) throw new Error("è¯·ååééç½®éªè¯ç ");
+      var r = await window.__resetUpdate({ nonce: code, password: pass });
+      if (r.error) throw r.error;
+      await guard();
+    } catch (e) { say($("login-msg"), "éç½®å¤±è´¥ï¼" + short(e), "err"); }
+  });
+
+  // ââ éåº ââ
+  $("btn-out").addEventListener("click", async function () {
+    try { await cloud.auth.signOut(); } catch (e) {}
+    showLogin();
+  });
+
+  // ââ äºç¯å¢èªæ£ ââ
+  $("btn-check").addEventListener("click", async function () {
+    var el = $("check-msg");
+    $("btn-check").disabled = true; say(el, "èªæ£ä¸­â¦");
+    try {
+      var s = await cloud.auth.getSession();
+      if (!s || s.error || !s.data) { showLogin(); return; }
+      var models = await cloud.llm.models.list();
+      if (!models || models.length === 0) say(el, "â äºæå¡è¿éï¼ä½å½åæ¨¡åç®å½ä¸ºç©ºã", "ok");
+      else say(el, "â äºæå¡è¿éï¼å¯ç¨æ¨¡å " + models.length + " ä¸ªï¼\n" +
+        models.map(function (m) { return "Â· " + (m.name || m.id); }).join("\n"), "ok");
+    } catch (e) { say(el, "â èªæ£æªéè¿ï¼" + short(e), "err"); }
+    finally { $("btn-check").disabled = false; }
+  });
+
+  guard();
+})();
+</script>
+</body>
+</html>
+
